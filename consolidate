@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+
+var program = require('commander');
+var BitcoinRPC = require('bitcore/RpcClient').class();
+
+var PROGRAM_VERSION = '0.1';
+
+program
+	.version(PROGRAM_VERSION)
+	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, 18332)
+	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, 'user')
+	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, 'pass')
+	.parse(process.argv);
+
+var rpc = new BitcoinRPC({
+		'port' : program.rpcport,
+		'user' : program.rpcuser,
+		'pass' : program.rpcpass,
+		'protocol' : 'http'
+});
+
+function unspent_cb(err, resp)
+{
+	if (err) throw new Error(err['message']);
+	var unspent_coins = resp['result'];
+
+	console.dir(unspent_coins);
+}
+
+function get_unspent()
+{
+	console.log("Download list of unspent coins...");
+	rpc.listUnspent(unspent_cb);
+}
+
+function main()
+{
+	get_unspent();
+}
+
+main();
+
