@@ -2,6 +2,7 @@
 
 var program = require('commander');
 var BitcoinRPC = require('bitcore/RpcClient').class();
+var coinUtil = require('bitcore/util/util');
 
 var PROGRAM_VERSION = '0.1';
 
@@ -19,6 +20,8 @@ var rpc = new BitcoinRPC({
 		'protocol' : 'http'
 });
 
+var unspent_coins = undefined;
+
 function get_unspent()
 {
 	console.log("Download list of unspent coins...");
@@ -28,7 +31,28 @@ function get_unspent()
 function unspent_cb(err, resp)
 {
 	if (err) throw new Error(err['message']);
-	var unspent_coins = resp['result'];
+	unspent_coins = resp['result'];
+
+	filter_unspent();
+}
+
+function filter_unspent()
+{
+	var tmp = [];
+	for (var i = 0; i < unspent_coins.length; i++) {
+		var obj = unspent_coins[i];
+		var decimal = obj.amount.toString();
+		var bn = coinUtil.parseValue(decimal);
+
+		// filter out everything above 10.0 BTC
+		if (bn.gt(1000000000))
+			continue;
+
+		obj.amount = bn.toString();
+		tmp.push(obj);
+	}
+
+	unspent_coins = tmp;
 
 	console.dir(unspent_coins);
 }
