@@ -19,18 +19,18 @@ var rpc = new BitcoinRPC({
 		'protocol' : 'http'
 });
 
+function get_unspent()
+{
+	console.log("Download list of unspent coins...");
+	rpc.listUnspent(unspent_cb);
+}
+
 function unspent_cb(err, resp)
 {
 	if (err) throw new Error(err['message']);
 	var unspent_coins = resp['result'];
 
 	console.dir(unspent_coins);
-}
-
-function get_unspent()
-{
-	console.log("Download list of unspent coins...");
-	rpc.listUnspent(unspent_cb);
 }
 
 function main()
