@@ -10,7 +10,6 @@ var Script         = require('bitcore/Script').class();
 var networks       = require('bitcore/networks');
 var util           = require('bitcore/util/util');
 var buffertools    = require('buffertools');
-var colors         = require('colors');
 var p              = console.log;
 
 
@@ -24,6 +23,14 @@ program
 	.option('-v --verbose', 'Verbose')
 	.parse(process.argv);
 
+var txid = program.args[0];
+
+if (!txid) {
+  p("\nNo transaction ID given");
+  program.help();
+}
+
+
 
 var network = program.network == 'livenet' ? networks.livenet : networks.testnet;
 
@@ -34,20 +41,10 @@ var rpc = new BitcoinRPC({
 		'protocol' : 'http'
 });
 
-
-var txid = program.args[0];
-
-if (!txid) {
-  p("\t No transaction ID given");
-  program.help();
-}
-
-if (program.verbose) {
-  pv = p;
-}
+if (program.verbose) pv = p;
 
 
-p('\n\n## TXID'.bold.green);
+p('\n\n## TXID');
 p("\t" + txid);
 
 rpc.getRawTransaction(txid, 1, function(err, tx) {
@@ -55,47 +52,43 @@ rpc.getRawTransaction(txid, 1, function(err, tx) {
     p(err);
   else {
     if (tx) {
-
-
-      showTX(tx.result);
-      parseTX(tx.result.hex);
+      showBlockChainInfo(tx.result);
+      showTxInfo(tx.result.hex);
     }
   }
 });
 
 
-var showTX = function(txInfo) {
+var showBlockChainInfo = function(txInfo) {
   pv(require('util').inspect(txInfo, true, 10)); // 10 levels deep
 
   var d = new Date(txInfo.time*1000);
 
-  p('# Blockchain Data'.bold.red);
+  p('# Blockchain Data');
   p('\tBlock'); 
   p('\t%s',txInfo.blockhash);
   p('\tConfirmations: %d', txInfo.confirmations);
   p('\tTime         : %s', d );
 
-
 }
 
 
-var parseTX = function(data) {
+var showTxInfo = function(data) {
   var b = new Buffer(data,'hex');
 
   var tx = new Transaction();
   tx.parse(b);
 
 
-  p('# Transaction'.bold.red);
-
+  p('# Transaction');
 
   p('\tversion      : %d', tx.version); 
   p('\tlocktime     : %d', tx.lock_time); 
 
-  p('## Hex'.bold.green);
-  p(data.grey);
+  p('## Hex');
+  p(data);
 
-  p('## Inputs'.bold.green);
+  p('## Inputs');
 
   var c = 0;
   tx.ins.forEach( function(i) {
@@ -125,7 +118,7 @@ var parseTX = function(data) {
   });
 
 
-  p('## Outputs'.bold.green);
+  p('## Outputs');
 
   var c = 0;
   tx.outs.forEach( function(i) {
@@ -140,8 +133,6 @@ var parseTX = function(data) {
       util.formatValue(i.v)
      );
   });
-
-
 
 }
 
