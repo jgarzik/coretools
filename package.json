@@ -1,0 +1,26 @@
+{
+  "name": "coretools",
+  "version": "0.0.1",
+  "private": true,
+  "author": {
+    "name": "Jeff Garzik"
+  },
+  "repository": "git://github.com/jgarzik/coretools.git",
+  "contributors": [
+    {
+      "name": "Matias Alejo Garcia",
+      "email": "ematiu@gmail.com"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/jgarzik/coretools/issues"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "classtool": "*",
+    "commander": "*",
+    "bitcore": "*"
+  }
+}
