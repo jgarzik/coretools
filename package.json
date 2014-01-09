@@ -21,6 +21,8 @@
   "dependencies": {
     "classtool": "*",
     "commander": "*",
+    "buffertools": "*",
+    "colors": "*",
     "bitcore": "*"
   }
 }
