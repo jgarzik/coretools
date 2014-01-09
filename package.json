@@ -23,6 +23,8 @@
     "commander": "*",
     "buffertools": "*",
     "colors": "*",
-    "bitcore": "*"
+    "bitcore": "*",
+    "bignum": "*",
+    "async": "*"
   }
 }

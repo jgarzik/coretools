@@ -10,6 +10,9 @@ var Script         = require('bitcore/Script').class();
 var networks       = require('bitcore/networks');
 var util           = require('bitcore/util/util');
 var buffertools    = require('buffertools');
+var async          = require('async');
+var async          = require('async');
+var bignum         = require('bignum');
 var p              = console.log;
 
 
@@ -41,22 +44,72 @@ var rpc = new BitcoinRPC({
 		'protocol' : 'http'
 });
 
-if (program.verbose) pv = p;
+if (program.verbose) {
+  pv = p;
+}
+else {
+  pv = function(){};
+}
 
 
 p('\n\n## TXID');
 p("\t" + txid);
 
-rpc.getRawTransaction(txid, 1, function(err, tx) {
+rpc.getRawTransaction(txid, 1, function(err, txdata) {
   if (err) 
     p(err);
   else {
-    if (tx) {
-      showBlockChainInfo(tx.result);
-      showTxInfo(tx.result.hex);
+    if (txdata) {
+      showBlockChainInfo(txdata.result);
+
+      parseTX(txdata.result.hex, function(tx) {
+
+        if (err) 
+          p(err); 
+        else 
+          showTxInfo(tx);
+      });
     }
   }
 });
+
+var parseTX = function(data, next) {
+
+
+  var b = new Buffer(data,'hex');
+  var tx = new Transaction();
+
+  var c=0;
+
+  tx.parse(b);
+
+  async.each(tx.ins, function(i, cb) {
+
+      var outHash = i.getOutpointHash();
+      var outIndex = i.getOutpointIndex();
+      var outHashBase64 = outHash.reverse().toString('hex');
+
+      var c=0;
+      rpc.getRawTransaction(outHashBase64, function(err, txdata) {
+        var txin = new Transaction();
+        var b = new Buffer(txdata.result,'hex');
+        txin.parse(b);
+
+        txin.outs.forEach( function(j) {
+          // console.log( c + ': ' + util.formatValue(j.v) );
+          if (c == outIndex) {
+            i.value = j.v;
+          }
+          c++;
+        });
+        return cb();
+      });
+
+    },
+    function(err) {
+      return next(tx);
+  });
+}
 
 
 var showBlockChainInfo = function(txInfo) {
@@ -64,59 +117,59 @@ var showBlockChainInfo = function(txInfo) {
 
   var d = new Date(txInfo.time*1000);
 
-  p('# Blockchain Data');
-  p('\tBlock'); 
+  p('## Blockchain Data');
+  p('\tBlock:'); 
   p('\t%s',txInfo.blockhash);
   p('\tConfirmations: %d', txInfo.confirmations);
   p('\tTime         : %s', d );
 
 }
 
-
-var showTxInfo = function(data) {
-  var b = new Buffer(data,'hex');
-
-  var tx = new Transaction();
-  tx.parse(b);
+var satoshisToBTC = function(n) {
+  return n/100000000.;
+}
 
 
-  p('# Transaction');
+var showTxInfo = function(tx) {
+
+  p('## Transaction');
 
   p('\tversion      : %d', tx.version); 
   p('\tlocktime     : %d', tx.lock_time); 
 
-  p('## Hex');
-  p(data);
 
   p('## Inputs');
 
-  var c = 0;
+  var c        = 0;
+  var valueIn  = bignum(0);
+  var valueOut = bignum(0);
+
   tx.ins.forEach( function(i) {
 
     if (i.isCoinBase() ) {
       p("\tCoinbase");
     }
     else {
-      var scriptSig = i.getScript();
-      var pubKey    = scriptSig.simpleInPubKey();
-      var pubKeyHash = util.sha256ripe160(pubKey);
+      var scriptSig     = i.getScript();
+      var pubKey        = scriptSig.simpleInPubKey();
+      var pubKeyHash    = util.sha256ripe160(pubKey);
+      var addr          = new Address(network.addressPubkey, pubKeyHash);
+      var addrStr       = addr.toString();
+      var outHash       = i.getOutpointHash();
+      var outIndex      = i.getOutpointIndex();
+      var outHashBase64 = outHash.toString('hex');
 
-      var addr = new Address(network.addressPubkey, pubKeyHash);
-      var addrStr = addr.toString();
-      p("\t#%d (%s) %s", c++, scriptSig.getInType(), addrStr);
+      p("\t#%d (%s) %s [%d BTC]", c++, scriptSig.getInType(), addrStr,
+        util.formatValue(i.value));
+      p("\t  (Outpoint: %s @%d)",outHashBase64, outIndex );
 
-
-      var outHash = i.getOutpointHash();
-
-      var outIndex = i.getOutpointIndex();
-      var outHashBase64 = outHash.reverse().toString('hex');
-
-      p("\t\tOutpoint: %s @%d",outHashBase64, outIndex );
+      var n =util.valueToBigInt(i.value).toNumber();
+      valueIn           = valueIn.add( n );
 
     }
 
   });
-
+  p('\tTotal Inputs: %d',  satoshisToBTC( valueIn ));
 
   p('## Outputs');
 
@@ -124,15 +177,18 @@ var showTxInfo = function(data) {
   tx.outs.forEach( function(i) {
 
     var scriptPubKey = i.getScript();
-    var txType = scriptPubKey.classify();
-
-    var hash =  scriptPubKey.simpleOutHash();
-    var addr = new Address(network.addressPubkey, hash);
-    var addrStr = addr.toString();
+    var txType       = scriptPubKey.classify();
+    var hash         = scriptPubKey.simpleOutHash();
+    var addr         = new Address(network.addressPubkey, hash);
+    var addrStr      = addr.toString();
     p("\t#%d (%s) %s [%d BTC]", c++, scriptPubKey.getOutType(), addrStr,
       util.formatValue(i.v)
      );
-  });
 
+    var n =  util.valueToBigInt(i.v).toNumber();
+    valueOut = valueOut.add(n);
+  });
+  p('\tTotal Outputs: %d BTC', satoshisToBTC( valueOut ) );
+  p('\tFee: %d BTC', satoshisToBTC( valueIn.sub(valueOut.toNumber()))) ;
 }
 
