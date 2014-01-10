@@ -20,8 +20,6 @@ var rpc = new BitcoinRPC({
 		'protocol' : 'http'
 });
 
-var unspent_coins = undefined;
-
 function get_unspent()
 {
 	console.log("Download list of unspent coins...");
@@ -31,12 +29,12 @@ function get_unspent()
 function unspent_cb(err, resp)
 {
 	if (err) throw new Error(err['message']);
-	unspent_coins = resp['result'];
+	var unspent_coins = resp['result'];
 
-	filter_unspent();
+	filter_unspent(unspent_coins);
 }
 
-function filter_unspent()
+function filter_unspent(unspent_coins)
 {
 	var tmp = [];
 	for (var i = 0; i < unspent_coins.length; i++) {
