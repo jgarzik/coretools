@@ -6,10 +6,12 @@ var BitcoinRPC = require('bitcore/RpcClient').class();
 var coinUtil = require('bitcore/util/util');
 
 var PROGRAM_VERSION = '0.1';
+var WALLET_ACCOUNT = 'coin-consolidation';
+var CONSOL_N_TX = 5;
 
 program
 	.version(PROGRAM_VERSION)
-	.option('--maxbtc [value]', 'Ignore coins greater than this value', Number, 10.0)
+	.option('--maxbtc [value]', 'Ignore coins greater than this value [10.0]', Number, 10.0)
 	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, 18332)
 	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, 'user')
 	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, 'pass')
@@ -45,6 +47,8 @@ function coins_by_value(a, b)
 
 function filter_unspent(unspent_coins)
 {
+	console.log("Culling list of unspent coins...");
+
 	var decimal = program.maxbtc.toString();
 	var maxBn = coinUtil.parseValue(decimal);
 
@@ -69,7 +73,63 @@ function filter_unspent(unspent_coins)
 	// sort by value
 	unspent_coins.sort(coins_by_value);
 
-	console.dir(unspent_coins);
+	if (unspent_coins.length < 2) {
+		console.log("No unspent coins to defragment. Exiting.");
+		return;
+	}
+
+	prep_address(unspent_coins);
+}
+
+function prep_address(unspent_coins)
+{
+	console.log("Getting destination address...");
+
+	// get destination address for coin consolidation
+	rpc.getAccountAddress(WALLET_ACCOUNT, function(err, resp) {
+		if (err) throw new Error(err['message']);
+		var destAddr = resp['result'];
+
+		console.log("   " + destAddr);
+
+		reduce_unspent(destAddr, unspent_coins);
+	});
+}
+
+function reduce_unspent(destAddr, unspent_coins)
+{
+	console.log("Building final list of coins for consolidation TX");
+
+	if (unspent_coins.length > CONSOL_N_TX) {
+		var tmp = [];
+
+		// first 4 (lowest value)
+		for (var i = 0; i < CONSOL_N_TX && i < unspent_coins.length; i++)
+			tmp.push(unspent_coins[i]);
+
+		// last 1 (highest value)
+		tmp.push(unspent_coins[unspent_coins.length - 1]);
+
+		unspent_coins = tmp;
+	}
+
+	var total = bignum(0);
+	var fmtVal = undefined;
+	
+	// list final coins for consolidation TX; build total TX value
+	for (var i = 0; i < unspent_coins.length; i++) {
+		var bnTmp = bignum(unspent_coins[i].amount);
+
+		fmtVal = coinUtil.formatValue(coinUtil.bigIntToValue(bnTmp));
+		console.log("   " + fmtVal + " " +
+			    unspent_coins[i].txid + " " +
+			    unspent_coins[i].vout);
+
+		total = total.add(bnTmp);
+	}
+
+	fmtVal = coinUtil.formatValue(coinUtil.bigIntToValue(total));
+	console.log("total: " + fmtVal);
 }
 
 function main()
