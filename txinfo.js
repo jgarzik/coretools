@@ -152,9 +152,12 @@ var showTxInfo = function(tx) {
     else {
       var scriptSig     = i.getScript();
       var pubKey        = scriptSig.simpleInPubKey();
-      var pubKeyHash    = util.sha256ripe160(pubKey);
-      var addr          = new Address(network.addressPubkey, pubKeyHash);
-      var addrStr       = addr.toString();
+      var addrStr       = '[could not parse it]';
+      if (pubKey) {
+        var pubKeyHash    = util.sha256ripe160(pubKey);
+        var addr          = new Address(network.addressPubkey, pubKeyHash);
+        addrStr           = addr.toString();
+      }
       var outHash       = i.getOutpointHash();
       var outIndex      = i.getOutpointIndex();
       var outHashBase64 = outHash.toString('hex');
@@ -179,8 +182,11 @@ var showTxInfo = function(tx) {
     var scriptPubKey = i.getScript();
     var txType       = scriptPubKey.classify();
     var hash         = scriptPubKey.simpleOutHash();
-    var addr         = new Address(network.addressPubkey, hash);
-    var addrStr      = addr.toString();
+    var addrStr      = '[could not parse it]'
+    if (hash) {
+      var addr = new Address(network.addressPubkey, hash);
+      addrStr  = addr.toString();
+    }
     p("\t#%d (%s) %s [%d BTC]", c++, scriptPubKey.getOutType(), addrStr,
       util.formatValue(i.v)
      );
