@@ -182,10 +182,10 @@ var showTxInfo = function(tx) {
     var scriptPubKey = i.getScript();
     var txType       = scriptPubKey.classify();
     var hash         = scriptPubKey.simpleOutHash();
-    var addr         = '[could not parse it]'
+    var addrStr      = '[could not parse it]'
     if (hash) {
-      addr             = new Address(network.addressPubkey, hash);
-      var addrStr      = addr.toString();
+      var addr = new Address(network.addressPubkey, hash);
+      addrStr  = addr.toString();
     }
     p("\t#%d (%s) %s [%d BTC]", c++, scriptPubKey.getOutType(), addrStr,
       util.formatValue(i.v)
