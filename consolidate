@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var program = require('commander');
+var bignum = require('bignum');
 var BitcoinRPC = require('bitcore/RpcClient').class();
 var coinUtil = require('bitcore/util/util');
 
@@ -35,6 +36,13 @@ function unspent_cb(err, resp)
 	filter_unspent(unspent_coins);
 }
 
+function coins_by_value(a, b)
+{
+	var bnA = bignum(a.amount);
+	var bnB = bignum(b.amount);
+	return bnA.cmp(bnB);
+}
+
 function filter_unspent(unspent_coins)
 {
 	var decimal = program.maxbtc.toString();
@@ -46,15 +54,20 @@ function filter_unspent(unspent_coins)
 		decimal = obj.amount.toString();
 		var bn = coinUtil.parseValue(decimal);
 
-		// filter out everything above 10.0 BTC
+		// filter out everything above --maxbtc
 		if (bn.gt(maxBn))
 			continue;
 
+		// convert amount to a string of satoshis
 		obj.amount = bn.toString();
+
 		tmp.push(obj);
 	}
 
 	unspent_coins = tmp;
+
+	// sort by value
+	unspent_coins.sort(coins_by_value);
 
 	console.dir(unspent_coins);
 }
