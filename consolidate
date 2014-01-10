@@ -103,8 +103,8 @@ function reduce_unspent(destAddr, unspent_coins)
 	if (unspent_coins.length > CONSOL_N_TX) {
 		var tmp = [];
 
-		// first 4 (lowest value)
-		for (var i = 0; i < CONSOL_N_TX && i < unspent_coins.length; i++)
+		// first N (lowest value)
+		for (var i = 0; i < (CONSOL_N_TX-1) && i < unspent_coins.length; i++)
 			tmp.push(unspent_coins[i]);
 
 		// last 1 (highest value)
