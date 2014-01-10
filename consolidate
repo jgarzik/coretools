@@ -8,6 +8,7 @@ var PROGRAM_VERSION = '0.1';
 
 program
 	.version(PROGRAM_VERSION)
+	.option('--maxbtc [value]', 'Ignore coins greater than this value', Number, 10.0)
 	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, 18332)
 	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, 'user')
 	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, 'pass')
@@ -36,14 +37,17 @@ function unspent_cb(err, resp)
 
 function filter_unspent(unspent_coins)
 {
+	var decimal = program.maxbtc.toString();
+	var maxBn = coinUtil.parseValue(decimal);
+
 	var tmp = [];
 	for (var i = 0; i < unspent_coins.length; i++) {
 		var obj = unspent_coins[i];
-		var decimal = obj.amount.toString();
+		decimal = obj.amount.toString();
 		var bn = coinUtil.parseValue(decimal);
 
 		// filter out everything above 10.0 BTC
-		if (bn.gt(1000000000))
+		if (bn.gt(maxBn))
 			continue;
 
 		obj.amount = bn.toString();
