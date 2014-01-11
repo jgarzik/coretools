@@ -4,6 +4,7 @@ var program = require('commander');
 var bignum = require('bignum');
 var BitcoinRPC = require('bitcore/RpcClient').class();
 var coinUtil = require('bitcore/util/util');
+var Transaction = require('bitcore/Transaction').class();
 
 var PROGRAM_VERSION = '0.1';
 var WALLET_ACCOUNT = 'coin-consolidation';
@@ -129,7 +130,39 @@ function reduce_unspent(destAddr, unspent_coins)
 	}
 
 	fmtVal = coinUtil.formatValue(coinUtil.bigIntToValue(total));
-	console.log("total: " + fmtVal);
+	console.log("total value consolidated: " + fmtVal);
+
+	build_raw_tx(destAddr, fmtVal, unspent_coins);
+}
+
+function build_raw_tx(destAddr, fmtVal, unspent_coins)
+{
+	var inputs = [];
+	var outputs = {};
+
+	for (var i = 0; i < unspent_coins.length; i++) {
+		var obj = {};
+		obj.txid = unspent_coins[i].txid;
+		obj.vout = unspent_coins[i].vout;
+		inputs.push(obj);
+	}
+
+	outputs[destAddr] = fmtVal;
+
+	var txObj = {
+		inputs:	inputs,
+		outputs: outputs,
+	};
+
+	var tx = new Transaction();
+	tx.fromObj(txObj);
+
+	var rawHex = tx.serialize().toString('hex');
+	var binBytes = rawHex.length / 2;
+
+	console.log("Raw transaction (" + binBytes.toString() +
+		    "b), sans signatures:");
+	console.log(rawHex);
 }
 
 function main()
