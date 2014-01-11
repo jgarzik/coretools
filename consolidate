@@ -8,7 +8,7 @@ var Transaction = require('bitcore/Transaction').class();
 
 var PROGRAM_VERSION = '0.1';
 var WALLET_ACCOUNT = 'coin-consolidation';
-var CONSOL_N_TX = 5;
+var CONSOL_N_TX = 10;
 
 program
 	.version(PROGRAM_VERSION)
