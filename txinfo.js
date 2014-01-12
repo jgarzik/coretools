@@ -99,6 +99,16 @@ var parseTX = function(data, next) {
           // console.log( c + ': ' + util.formatValue(j.v) );
           if (c == outIndex) {
             i.value = j.v;
+
+            // This is used for pay-to-pubkey transaction in which
+            // the pubkey is not provided on the input
+            var scriptPubKey = j.getScript();
+            var txType       = scriptPubKey.classify();
+            var hash         = scriptPubKey.simpleOutHash();
+            if (hash) {
+              var addr          = new Address(network.addressPubkey, hash);
+              i.addrFromOutput  = addr.toString();
+            }
           }
           c++;
         });
@@ -157,6 +167,9 @@ var showTxInfo = function(tx) {
         var pubKeyHash    = util.sha256ripe160(pubKey);
         var addr          = new Address(network.addressPubkey, pubKeyHash);
         addrStr           = addr.toString();
+      }
+      else {
+        if (i.addrFromOutput) addrStr = i.addrFromOutput;
       }
       var outHash       = i.getOutpointHash();
       var outIndex      = i.getOutpointIndex();
