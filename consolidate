@@ -6,14 +6,27 @@ var coinUtil = require('bitcore/util/util');
 
 var PROGRAM_VERSION = '0.1';
 
+
+var dfltPort       =  process.env.BITCOIND_PORT || 18332;
+var dfltHost       =  process.env.BITCOIND_HOST || 'localhost';
+var dfltUser       =  process.env.BITCOIND_USER || 'user';
+var dfltPass       =  process.env.BITCOIND_PASS || 'pass';
+
+program.on('--help', function(){
+    console.log('  Default values are also read from BITCOIND_PORT, BITCOIND_HOST, BITCOIND_USER, BITCOIND_PASS environment variables.');
+});
+
+
 program
 	.version(PROGRAM_VERSION)
-	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, 18332)
-	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, 'user')
-	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, 'pass')
+	.option('--rpchost [host]', 'Bitcoind RPC host [localhost]', Number, dfltHost)
+	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, dfltPort)
+	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, dfltUser)
+	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, dfltPass)
 	.parse(process.argv);
 
 var rpc = new BitcoinRPC({
+        'host' : program.rpchost,
 		'port' : program.rpcport,
 		'user' : program.rpcuser,
 		'pass' : program.rpcpass,

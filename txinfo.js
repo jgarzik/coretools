@@ -16,16 +16,27 @@ var bignum         = require('bignum');
 var p              = console.log;
 
 
+var dfltPort       =  process.env.BITCOIND_PORT || 18332;
+var dfltHost       =  process.env.BITCOIND_HOST || 'localhost';
+var dfltUser       =  process.env.BITCOIND_USER || 'user';
+var dfltPass       =  process.env.BITCOIND_PASS || 'pass';
+
+
+
+program.on('--help', function(){
+    console.log('  Default values are also read from BITCOIND_PORT, BITCOIND_HOST, BITCOIND_USER, BITCOIND_PASS environment variables.');
+});
+
 
 program
-	.version('0.0.1')
-	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, 18332)
-	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, 'user')
-	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, 'pass')
+	.version('0.0.2')
+	.option('--rpchost [host]', 'Bitcoind RPC host [localhost]', Number, dfltHost)
+	.option('--rpcport [port]', 'Bitcoind RPC port [18332]', Number, dfltPort)
+	.option('--rpcuser [user]', 'Bitcoind RPC user [user]', String, dfltUser)
+	.option('--rpcpass [password]', 'Bitcoind RPC password [pass]', String, dfltPass)
 	.option('-N --network [testnet]', 'Bitcoind Network [testnet]', String, 'testnet')
 	.option('-v --verbose', 'Verbose')
 	.parse(process.argv);
-
 var txid = program.args[0];
 
 if (!txid) {
@@ -38,6 +49,7 @@ if (!txid) {
 var network = program.network == 'livenet' ? networks.livenet : networks.testnet;
 
 var rpc = new BitcoinRPC({
+        'host' : program.rpchost,
 		'port' : program.rpcport,
 		'user' : program.rpcuser,
 		'pass' : program.rpcpass,
@@ -74,7 +86,6 @@ rpc.getRawTransaction(txid, 1, function(err, txdata) {
 });
 
 var parseTX = function(data, next) {
-
 
   var b = new Buffer(data,'hex');
   var tx = new Transaction();
