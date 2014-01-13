@@ -67,32 +67,45 @@ else {
 p('\n\n## TXID');
 p("\t" + txid);
 
-rpc.getRawTransaction(txid, 1, function(err, txdata) {
-  if (err) 
-    p(err);
+rpc.getRawTransaction(txid, 1, function(err, txData) {
+  if (err) p(err);
   else {
-    if (txdata) {
-      showBlockChainInfo(txdata.result);
+    if (txData) {
+        rpc.getBlock(txData.result.blockhash, function(err, blockData) {
+            if (err) p(err);
+            pv("BLOCK DATA", require('util').inspect(blockData, true, 10));
 
-      parseTX(txdata.result.hex, function(tx) {
+            showBlockChainInfo(txData.result, blockData.result);
 
-        if (err) 
-          p(err); 
-        else 
-          showTxInfo(tx);
-      });
+            parseTX(txData.result.hex, blockData.result, function(tx) {
+
+                if (err) 
+                p(err); 
+                else 
+                showTxInfo(tx);
+            });
+        });
     }
   }
 });
 
-var parseTX = function(data, next) {
+var parseTX = function(txHex, blockInfo, next) {
 
-  var b = new Buffer(data,'hex');
+  var b = new Buffer(txHex,'hex');
   var tx = new Transaction();
 
   var c=0;
 
   tx.parse(b);
+
+  if (tx.isCoinBase() ) {
+      var base = bignum(util.COIN)
+        .mul(50)
+        .shiftRight(parseInt(blockInfo.height/ 210000))
+        .div(util.COIN);
+      tx.blockReward = base.toNumber();
+      return next(tx);
+  }
 
   async.each(tx.ins, function(i, cb) {
 
@@ -101,9 +114,10 @@ var parseTX = function(data, next) {
       var outHashBase64 = outHash.reverse().toString('hex');
 
       var c=0;
-      rpc.getRawTransaction(outHashBase64, function(err, txdata) {
+      rpc.getRawTransaction(outHashBase64, function(err, txData) {
+
         var txin = new Transaction();
-        var b = new Buffer(txdata.result,'hex');
+        var b = new Buffer(txData.result,'hex');
         txin.parse(b);
 
         txin.outs.forEach( function(j) {
@@ -133,8 +147,8 @@ var parseTX = function(data, next) {
 }
 
 
-var showBlockChainInfo = function(txInfo) {
-  pv(require('util').inspect(txInfo, true, 10)); // 10 levels deep
+var showBlockChainInfo = function(txInfo,blockInfo) {
+  pv("TX DATA", require('util').inspect(txInfo, true, 10)); // 10 levels deep
 
   var d = new Date(txInfo.time*1000);
 
@@ -142,6 +156,7 @@ var showBlockChainInfo = function(txInfo) {
   p('\tBlock:'); 
   p('\t%s',txInfo.blockhash);
   p('\tConfirmations: %d', txInfo.confirmations);
+  p('\tHeight       : %d', blockInfo.height);
   p('\tTime         : %s', d );
 
 }
@@ -169,6 +184,8 @@ var showTxInfo = function(tx) {
 
     if (i.isCoinBase() ) {
       p("\tCoinbase");
+      p("\tReward       : %d", tx.blockReward );
+      valueIn           = valueIn.add( tx.blockReward * util.COIN );
     }
     else {
       var scriptSig     = i.getScript();
