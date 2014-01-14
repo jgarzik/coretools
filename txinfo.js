@@ -6,6 +6,7 @@ var program        = require('commander');
 var BitcoinRPC     = require('bitcore/RpcClient').class();
 var Transaction    = require('bitcore/Transaction').class();
 var Address        = require('bitcore/Address').class();
+var Block          = require('bitcore/Block').class();
 var Script         = require('bitcore/Script').class();
 var networks       = require('bitcore/networks');
 var util           = require('bitcore/util/util');
@@ -99,11 +100,7 @@ var parseTX = function(txHex, blockInfo, next) {
   tx.parse(b);
 
   if (tx.isCoinBase() ) {
-      var base = bignum(util.COIN)
-        .mul(50)
-        .shiftRight(parseInt(blockInfo.height/ 210000))
-        .div(util.COIN);
-      tx.blockReward = base.toNumber();
+      tx.blockReward = Block.getBlockValue(blockInfo.height) / util.COIN;
       return next(tx);
   }
 
